@@ -1643,6 +1643,9 @@ body.gameIsStarted {
 body.gameIsStarted .vc-topbar {
   display: none;
 }
+body.gameIsStarted #config-panel.vc-settings-panel {
+  display: none !important;
+}
 
 .lang-switcher {
   width: min(1240px, 100%);
