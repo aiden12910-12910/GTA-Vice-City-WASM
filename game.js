@@ -138,41 +138,39 @@ const data_index = `${replaceBR}vc-sky-en-v6.json`;
 wasm_content = 'engine/vc-sky-en-v6.wasm';
 
 async function loadData() {
-    // Package index, written by the importer.
     const indexResponse = await fetch(data_index, { cache: 'no-store' });
     if (!indexResponse.ok) {
-        throw new Error(`Failed to load data index: ${indexResponse.status} ${indexResponse.url}`);
+        throw new Error("Failed to load data index: " + indexResponse.status + " " + indexResponse.url);
     }
     window.DATA_PACKAGE = await indexResponse.json();
-    const dataSize = window.DATA_PACKAGE.remote_package_size;
-
+    const dataSize = Number(window.DATA_PACKAGE.remote_package_size);
     const response = await fetch(data_content, { cache: 'no-store' });
     if (!response.ok) {
-        throw new Error(`Failed to load data package: ${response.status} ${response.url}`);
+        throw new Error("Failed to load data package: " + response.status + " " + response.url);
     }
 
+    const expectedSize = Number(response.headers.get("Content-Length")) || dataSize;
+    if (!Number.isSafeInteger(expectedSize) || expectedSize <= 0) {
+        throw new Error("Invalid game package size in the OPFS index.");
+    }
+    const buffer = new Uint8Array(expectedSize);
     const reader = response.body.getReader();
     let receivedLength = 0;
-    let chunks = [];
     while (true) {
         const { done, value } = await reader.read();
-        if (done) {
-            break;
+        if (done) break;
+        if (receivedLength + value.length > buffer.length) {
+            throw new Error("Game package is larger than its index declares.");
         }
-        chunks.push(value);
+        buffer.set(value, receivedLength);
         receivedLength += value.length;
-        if (typeof setStatus === "function") {
-            setStatus(`Downloading...(${receivedLength}/${dataSize})`);
-        }
+        setStatus("Downloading...(" + receivedLength + "/" + expectedSize + ")");
     }
-    let buffer = new Uint8Array(receivedLength);
-    let position = 0;
-    for (let chunk of chunks) {
-        buffer.set(chunk, position);
-        position += chunk.length;
+    if (receivedLength !== expectedSize) {
+        throw new Error("Game package is incomplete: received " + receivedLength + " of " + expectedSize + " bytes.");
     }
-    return new Uint8Array(buffer.buffer);
-};
+    return buffer;
+}
 
 async function startGame(e) {
     e.stopPropagation();
@@ -192,16 +190,19 @@ async function startGame(e) {
     document.querySelector('.loader-container').style.display = "flex";
     loadingScreen.hidden = false;
 
+    window.__vcGameRuntimeReady = false;
     await window.vcUserData?.prepareLaunch();
     const dataBuffer = await loadData();
-    loadingScreen.hidden = true;
     loadGame(dataBuffer);
 }
 
 function setStatus(text) {
+    const loadingScreen = document.querySelector('.loading-screen');
+    if (text && loadingScreen) loadingScreen.hidden = false;
     if (!text) {
         progressElement.hidden = true;
         spinnerElement.hidden = true;
+        if (window.__vcGameRuntimeReady && loadingScreen) loadingScreen.hidden = true;
         return;
     }
     const match = text.match(/(.+)\((\d+\.?\d*)\/(\d+)\)/);
@@ -229,6 +230,13 @@ async function loadGame(data) {
     const configuredIni = buildConfiguredRevcIni(baseIni);
     const gameIni = useClassicControls ? configuredIni.replace(/^Method=\d+$/m, 'Method=1') : configuredIni;
     var Module = {
+        onRuntimeInitialized: () => {
+            window.__vcGameRuntimeReady = true;
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                const loadingScreen = document.querySelector('.loading-screen');
+                if (loadingScreen) loadingScreen.hidden = true;
+            }));
+        },
         mainCalled: () => {
             try {
                 Module.FS.unlink("/vc-assets/local/revc.ini");
