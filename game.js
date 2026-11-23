@@ -11,17 +11,73 @@ const params = new URLSearchParams(window.location.search);
 const replaceFetch = (str) => str.replace(/^https?:\/\/[^/]+\/vcsky\//, "/vcsky/")
 const replaceBR = "/vcbr/"
 
-// Configurable mode - show settings UI before play
-const configurableMode = params.get('configurable') === "1";
+// Browser settings are stored separately from the game's own reVC configuration.
+const SETTINGS_KEY = 'vcsky.browser-settings.v1';
+const SETTINGS_DEFAULTS = {
+    quality: 'custom',
+    resolution: '800x600',
+    maxFPS: 0,
+    drawDistance: 1.8,
+    trails: true,
+    vsync: true,
+    fullscreen: true,
+};
+function loadBrowserSettings() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null');
+        if (!saved || typeof saved !== 'object') return { ...SETTINGS_DEFAULTS };
+        const resolutions = ['640x480', '800x600', '1024x768', '1280x720', '1600x900'];
+        const fps = Number(saved.maxFPS);
+        const distance = Number(saved.drawDistance);
+        return {
+            quality: ['performance', 'balanced', 'high', 'custom'].includes(saved.quality) ? saved.quality : SETTINGS_DEFAULTS.quality,
+            resolution: resolutions.includes(saved.resolution) ? saved.resolution : SETTINGS_DEFAULTS.resolution,
+            maxFPS: Number.isFinite(fps) ? Math.max(0, Math.min(240, Math.round(fps))) : SETTINGS_DEFAULTS.maxFPS,
+            drawDistance: Number.isFinite(distance) ? Math.max(0.8, Math.min(1.8, distance)) : SETTINGS_DEFAULTS.drawDistance,
+            trails: typeof saved.trails === 'boolean' ? saved.trails : SETTINGS_DEFAULTS.trails,
+            vsync: typeof saved.vsync === 'boolean' ? saved.vsync : SETTINGS_DEFAULTS.vsync,
+            fullscreen: typeof saved.fullscreen === 'boolean' ? saved.fullscreen : SETTINGS_DEFAULTS.fullscreen,
+        };
+    } catch {
+        return { ...SETTINGS_DEFAULTS };
+    }
+}
+const browserSettings = loadBrowserSettings();
+function saveBrowserSettings() {
+    try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(browserSettings));
+    } catch (error) {
+        console.warn('[settings] Could not save browser settings:', error);
+    }
+}
+function setIniValue(ini, section, key, value) {
+    const sectionRegex = new RegExp('(^\\[' + section + '\\]\\r?\\n)([\\s\\S]*?)(?=^\\[|$)', 'm');
+    return ini.replace(sectionRegex, (whole, header, body) => {
+        const keyRegex = new RegExp('^' + key + '=.*$', 'm');
+        if (keyRegex.test(body)) return header + body.replace(keyRegex, key + '=' + value);
+        return header + body.replace(/\\s*$/, '') + '\\n' + key + '=' + value + '\\n';
+    });
+}
+function buildConfiguredRevcIni(ini) {
+    const [width, height] = browserSettings.resolution.split('x').map(Number);
+    let configured = setIniValue(ini, 'VideoMode', 'Width', width);
+    configured = setIniValue(configured, 'VideoMode', 'Height', height);
+    configured = setIniValue(configured, 'Display', 'DrawDistance', Number(browserSettings.drawDistance).toFixed(6));
+    configured = setIniValue(configured, 'Graphics', 'Trails', browserSettings.trails ? 1 : 0);
+    configured = setIniValue(configured, 'Graphics', 'VSync', browserSettings.vsync ? 1 : 0);
+    return configured;
+}
 
-// Settings that can be configured via URL or UI
-let autoFullScreen = params.get('fullscreen') !== "0";
-// The setup switch is remembered; ?cheats=1 still turns cheats on regardless.
+// Explicit URL parameters take precedence over the saved browser preferences.
+let autoFullScreen = params.has('fullscreen') ? params.get('fullscreen') !== '0' : browserSettings.fullscreen;
 const CHEATS_KEY = 'vcsky.cheats';
-let cheatsEnabled = params.get('cheats') === "1" || configurableMode || (() => {
+let cheatsEnabled = params.get('cheats') === '1' || (() => {
     try { return localStorage.getItem(CHEATS_KEY) === '1'; } catch { return false; }
 })();
-let maxFPS = parseInt(params.get('max_fps')) || 0;
+const requestedFPS = Number(params.get('max_fps'));
+let maxFPS = params.has('max_fps') && Number.isFinite(requestedFPS)
+    ? Math.max(0, Math.min(240, Math.round(requestedFPS)))
+    : browserSettings.maxFPS;
 
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 let isTouch = isMobile && window.matchMedia('(pointer: coarse)').matches;
@@ -107,7 +163,7 @@ async function startGame(e) {
     await window.vcController?.connect();
     await resumeAudioContexts();
 
-    if (isTouch && document.documentElement.requestFullscreen) {
+    if ((isTouch || autoFullScreen) && document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen().catch(() => {});
     }
 
@@ -151,9 +207,11 @@ function setStatus(text) {
 };
 
 async function loadGame(data) {
-    // Only a fresh ini gets the pad-friendly control method; a saved one keeps the player's choice.
-    const useClassicControls = revc_ini === revc_iniDefault && window.vcController?.connected;
-    const gameIni = useClassicControls ? revc_ini.replace(/^Method=\d+$/m, 'Method=1') : revc_ini;
+    // Keep the player's saved controls, then apply browser graphics settings for this launch.
+    const baseIni = localStorage.getItem('vcsky.revc.ini') || revc_iniDefault;
+    const useClassicControls = baseIni === revc_iniDefault && window.vcController?.connected;
+    const configuredIni = buildConfiguredRevcIni(baseIni);
+    const gameIni = useClassicControls ? configuredIni.replace(/^Method=\d+$/m, 'Method=1') : configuredIni;
     var Module = {
         mainCalled: () => {
             try {
@@ -499,41 +557,115 @@ UNKNOWN_ACTION=
 
 `;
 
-const revc_ini = (() => {
-    const cached = localStorage.getItem('vcsky.revc.ini');
-    if (cached) {
-        return cached;
-    }
-    return revc_iniDefault;
-})();
 
-// Configurable mode UI
-if (configurableMode) {
-    const configPanel = document.getElementById('config-panel');
-    const configCheats = document.getElementById('config-cheats');
-    const configFullscreen = document.getElementById('config-fullscreen');
-    const configMaxFps = document.getElementById('config-max-fps');
-    
-    if (configPanel && configCheats && configFullscreen && configMaxFps) {
-        // Show config panel
-        configPanel.style.display = 'block';
-        
-        // Set initial values from URL params
-        configCheats.checked = cheatsEnabled;
-        configFullscreen.checked = autoFullScreen;
-        configMaxFps.value = maxFPS;
-        
-        // Update settings when changed
-        configCheats.addEventListener('change', (e) => {
-            cheatsEnabled = e.target.checked;
-        });
-        
-        configFullscreen.addEventListener('change', (e) => {
-            autoFullScreen = e.target.checked;
-        });
-        
-        configMaxFps.addEventListener('input', (e) => {
-            maxFPS = parseInt(e.target.value) || 0;
-        });
+
+// Settings drawer: changes are persisted and applied the next time the game starts.
+(() => {
+    const panel = document.getElementById('config-panel');
+    const openButton = document.getElementById('vc-settings-open');
+    const closeButton = document.getElementById('vc-settings-close');
+    const quality = document.getElementById('config-quality');
+    const resolution = document.getElementById('config-resolution');
+    const fps = document.getElementById('config-max-fps');
+    const drawDistance = document.getElementById('config-draw-distance');
+    const drawDistanceValue = document.getElementById('config-draw-distance-value');
+    const trails = document.getElementById('config-trails');
+    const vsync = document.getElementById('config-vsync');
+    const fullscreen = document.getElementById('config-fullscreen');
+    const fullscreenButton = document.getElementById('vc-fullscreen-toggle');
+
+    if (!panel || !openButton) return;
+
+    const presets = {
+        performance: { resolution: '640x480', drawDistance: 0.8, trails: false, vsync: false },
+        balanced: { resolution: '800x600', drawDistance: 1.2, trails: true, vsync: true },
+        high: { resolution: '800x600', drawDistance: 1.8, trails: true, vsync: true },
+    };
+    const refreshDrawDistance = () => {
+        if (drawDistanceValue && drawDistance) {
+            drawDistanceValue.textContent = Number(drawDistance.value).toFixed(1) + '×';
+        }
+    };
+    const syncControls = () => {
+        if (quality) quality.value = browserSettings.quality;
+        if (resolution) resolution.value = browserSettings.resolution;
+        if (fps) fps.value = String(maxFPS);
+        if (drawDistance) drawDistance.value = String(browserSettings.drawDistance);
+        if (trails) trails.checked = browserSettings.trails;
+        if (vsync) vsync.checked = browserSettings.vsync;
+        if (fullscreen) fullscreen.checked = autoFullScreen;
+        refreshDrawDistance();
+    };
+    const persistControls = (manualGraphicsChange = false) => {
+        if (resolution) browserSettings.resolution = resolution.value;
+        if (drawDistance) {
+            browserSettings.drawDistance = Math.max(0.8, Math.min(1.8, Number(drawDistance.value) || 1.8));
+        }
+        if (trails) browserSettings.trails = trails.checked;
+        if (vsync) browserSettings.vsync = vsync.checked;
+        if (fps) {
+            maxFPS = Math.max(0, Math.min(240, Number(fps.value) || 0));
+            browserSettings.maxFPS = maxFPS;
+        }
+        if (fullscreen) {
+            autoFullScreen = fullscreen.checked;
+            browserSettings.fullscreen = autoFullScreen;
+        }
+        if (manualGraphicsChange && quality) quality.value = 'custom';
+        if (quality) browserSettings.quality = quality.value;
+        saveBrowserSettings();
+        refreshDrawDistance();
+    };
+    const applyPreset = () => {
+        const preset = presets[quality?.value];
+        if (!preset) {
+            persistControls(false);
+            return;
+        }
+        if (resolution) resolution.value = preset.resolution;
+        if (drawDistance) drawDistance.value = String(preset.drawDistance);
+        if (trails) trails.checked = preset.trails;
+        if (vsync) vsync.checked = preset.vsync;
+        persistControls(false);
+    };
+
+    syncControls();
+    quality?.addEventListener('change', applyPreset);
+    for (const control of [resolution, drawDistance, trails, vsync]) {
+        control?.addEventListener(control === drawDistance ? 'input' : 'change', () => persistControls(true));
     }
-}
+    fps?.addEventListener('change', () => persistControls(false));
+    fullscreen?.addEventListener('change', () => persistControls(false));
+
+    const setPanelOpen = (open) => {
+        panel.classList.toggle('is-open', open);
+        openButton.setAttribute('aria-expanded', String(open));
+    };
+    openButton.addEventListener('click', () => setPanelOpen(!panel.classList.contains('is-open')));
+    closeButton?.addEventListener('click', () => setPanelOpen(false));
+    document.addEventListener('pointerdown', (event) => {
+        if (panel.classList.contains('is-open') &&
+            !panel.contains(event.target) && !openButton.contains(event.target)) {
+            setPanelOpen(false);
+        }
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && panel.classList.contains('is-open')) setPanelOpen(false);
+    });
+
+    const updateFullscreenLabel = () => {
+        if (fullscreenButton) {
+            fullscreenButton.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
+        }
+    };
+    fullscreenButton?.addEventListener('click', async () => {
+        try {
+            if (document.fullscreenElement) await document.exitFullscreen();
+            else await document.documentElement.requestFullscreen();
+        } catch (error) {
+            console.warn('[fullscreen] Toggle failed:', error);
+        }
+    });
+    document.addEventListener('fullscreenchange', updateFullscreenLabel);
+    updateFullscreenLabel();
+})();
