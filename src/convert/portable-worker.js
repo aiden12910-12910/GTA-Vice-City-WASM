@@ -189,9 +189,11 @@ async function run(file) {
   let completed = 0;
   for (const item of files) {
     const zipPath = "opfs/" + item.path;
-    await writeOPFSFile(root, item.path, source, zipPath, item.size, source.crc(zipPath), () => {});
+    const fileBase = completed;
+    await writeOPFSFile(root, item.path, source, zipPath, item.size, source.crc(zipPath), (fileDone) => {
+      self.postMessage({ type: "progress", done: fileBase + fileDone, total, file: item.path });
+    });
     completed += item.size;
-    self.postMessage({ type: "progress", done: completed, total, file: item.path });
   }
 
   await restoreSaveRecords(manifest, source);
