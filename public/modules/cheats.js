@@ -1062,53 +1062,58 @@
     };
 
     window.typeCheat = async function(code) {
-        console.log("Typing cheat:", code);
-        updateStatus("Entering cheat...");
-        
-        if (typeof JSEvents === 'undefined' || !JSEvents.eventHandlers) return;
-
-        const handlers = JSEvents.eventHandlers.filter(h => 
-            h.eventTypeString === 'keydown' || h.eventTypeString === 'keypress' || h.eventTypeString === 'keyup'
-        );
-
-        const eventDataPtr = _malloc(160);
-
-        for (let i = 0; i < code.length; i++) {
-            const char = code[i].toUpperCase();
-            const keyCode = char.charCodeAt(0);
-            
-            const fillBuffer = () => {
-                for (let j = 0; j < 160; j++) HEAPU8[eventDataPtr + j] = 0;
-                HEAPF64[eventDataPtr >> 3] = performance.now();
-                const idx = eventDataPtr >> 2;
-                HEAP32[idx + 5] = keyCode;
-                HEAP32[idx + 6] = keyCode;
-                HEAP32[idx + 7] = keyCode;
-                stringToUTF8(char, eventDataPtr + 32, 32);
-                stringToUTF8('Key' + char, eventDataPtr + 64, 32);
-                stringToUTF8(char, eventDataPtr + 96, 32);
-            };
-
-            const fakeEvent = { _isCheat: true };
-
-            fillBuffer();
-            for (const h of handlers) {
-                if (h.eventTypeString === 'keydown') getWasmTableEntry(h.callbackfunc)(h.eventTypeId, eventDataPtr, h.userData);
-            }
-            fillBuffer();
-            for (const h of handlers) {
-                if (h.eventTypeString === 'keypress') getWasmTableEntry(h.callbackfunc)(h.eventTypeId, eventDataPtr, h.userData);
-            }
-            fillBuffer();
-            for (const h of handlers) {
-                if (h.eventTypeString === 'keyup') getWasmTableEntry(h.callbackfunc)(h.eventTypeId, eventDataPtr, h.userData);
-            }
-            
-            await new Promise(r => setTimeout(r, 5));
+        if (typeof JSEvents === 'undefined' || !Array.isArray(JSEvents.eventHandlers)) {
+            updateStatus("Game keyboard input is not ready");
+            return false;
         }
-        
-        _free(eventDataPtr);
-        updateStatus("Cheat entered: " + code);
+
+        const handlers = JSEvents.eventHandlers.filter((handler) =>
+            ["keydown", "keypress", "keyup"].includes(handler.eventTypeString) &&
+            typeof handler.handlerFunc === "function"
+        );
+        if (!handlers.length) {
+            updateStatus("No active game keyboard handlers");
+            return false;
+        }
+
+        updateStatus("Entering cheat...");
+        try {
+            for (const rawChar of String(code).toUpperCase()) {
+                const char = rawChar;
+                const keyCode = char.charCodeAt(0);
+                for (const type of ["keydown", "keypress", "keyup"]) {
+                    const event = {
+                        type,
+                        timeStamp: performance.now(),
+                        location: 0,
+                        ctrlKey: false,
+                        shiftKey: false,
+                        altKey: false,
+                        metaKey: false,
+                        repeat: false,
+                        charCode: type === "keypress" ? keyCode : 0,
+                        keyCode,
+                        which: keyCode,
+                        key: char,
+                        code: "Key" + char,
+                        char,
+                        locale: "",
+                        _isCheat: true,
+                        preventDefault() { this.defaultPrevented = true; },
+                    };
+                    for (const handler of handlers) {
+                        if (handler.eventTypeString === type) handler.handlerFunc(event);
+                    }
+                }
+                await new Promise((resolve) => setTimeout(resolve, 5));
+            }
+            updateStatus("Cheat entered: " + String(code).toUpperCase());
+            return true;
+        } catch (error) {
+            console.error("[CheatEngine] Cheat input failed:", error);
+            updateStatus("Cheat input failed: " + error.message);
+            return false;
+        }
     };
 
     // ========== AIRBREAK FUNCTIONALITY ==========

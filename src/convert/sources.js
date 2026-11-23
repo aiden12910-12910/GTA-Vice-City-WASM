@@ -66,6 +66,7 @@ async function readCentralDirectory(file) {
     if (p + 46 > cd.byteLength || u32(cd, p) !== 0x02014b50) throw new ZipError("damaged zip file");
     const flags = u16(cd, p + 8);
     const method = u16(cd, p + 10);
+    const crc = u32(cd, p + 16);
     let compSize = u32(cd, p + 20);
     let size = u32(cd, p + 24);
     const nameLen = u16(cd, p + 28);
@@ -90,7 +91,7 @@ async function readCentralDirectory(file) {
 
     const name = path.split("/").pop();
     if (!name || path.startsWith("__MACOSX/") || name === ".DS_Store" || name.startsWith("._")) continue;
-    entries.set(path, { flags, method, compSize, size, localOffset });
+    entries.set(path, { flags, method, crc, compSize, size, localOffset });
   }
   return entries;
 }
@@ -165,6 +166,8 @@ export async function zipSource(file, tmpDir, onUnpack) {
   return {
     paths: [...entries.keys()],
     size: (p) => entries.get(p).size,
+    method: (p) => entries.get(p).method,
+    crc: (p) => entries.get(p).crc,
     read: readAll,
     async readRange(p, offset, size) {
       const blob = await ranged(p);

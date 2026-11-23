@@ -16,6 +16,7 @@ import {
   PACKAGE_INDEX,
   READY_MARKER,
 } from "./convert/layout.js";
+import { exportPortableOPFSBackup } from "./convert/portable.js";
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -257,6 +258,9 @@ async function initSetupFlow() {
   const dropZone = document.getElementById("game-drop");
   const folderBtn = document.getElementById("game-folder-btn");
   const zipBtn = document.getElementById("game-zip-btn");
+  const portableZipInput = document.getElementById("portable-zip-input");
+  const portableImportBtn = document.getElementById("portable-import-btn");
+  const portableExportBtn = document.getElementById("portable-export-btn");
   const progress = document.getElementById("setup-progress");
   const progressBar = document.getElementById("setup-progress-bar");
   const progressLabel = document.getElementById("setup-progress-label");
@@ -274,6 +278,9 @@ async function initSetupFlow() {
     !dropZone ||
     !folderBtn ||
     !zipBtn ||
+    !portableZipInput ||
+    !portableImportBtn ||
+    !portableExportBtn ||
     !progress ||
     !progressBar ||
     !progressLabel ||
@@ -329,8 +336,11 @@ async function initSetupFlow() {
     importing = value;
     zipInput.disabled = value;
     folderInput.disabled = value;
+    portableZipInput.disabled = value;
     folderBtn.disabled = value;
     zipBtn.disabled = value;
+    portableImportBtn.disabled = value;
+    portableExportBtn.disabled = value;
     dropZone.classList.toggle("disabled", value);
     if (resetFilesBtn) resetFilesBtn.disabled = value;
   };
@@ -444,6 +454,73 @@ async function initSetupFlow() {
     worker.postMessage(input);
   };
 
+
+  const runPortableImport = (file) => {
+    if (!file || importing) return;
+    errorBox.style.display = "none";
+    setImporting(true);
+    progress.style.display = "block";
+    const progressTitle = progress.querySelector(".setup-progress-title");
+    if (progressTitle) setRawText(progressTitle, "Restoring portable OPFS backup");
+    setText(progressLabel, "progress.checking");
+    progressPercent.textContent = "0%";
+    progressBar.style.width = "0%";
+    setPlayAvailability(false);
+    setStorageStatus("status.missing", "missing");
+    setRawText(selectedFileName, file.name);
+
+    const worker = new Worker(new URL("./convert/portable-worker.js", import.meta.url), { type: "module" });
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      setImporting(false);
+      worker.terminate();
+    };
+    worker.onerror = (event) => {
+      event.preventDefault?.();
+      progress.style.display = "none";
+      showError("errors.generic", { message: event.message || "Portable ZIP restore failed." });
+      finish();
+    };
+    worker.onmessage = async (event) => {
+      const message = event.data;
+      if (message.type === "progress") {
+        const pct = message.total > 0 ? Math.min(99, Math.floor(message.done / message.total * 100)) : 0;
+        progressBar.style.width = pct + "%";
+        progressPercent.textContent = pct + "%";
+        setRawText(progressLabel, "Restoring " + message.file);
+        return;
+      }
+      if (message.type === "error") {
+        progress.style.display = "none";
+        showError("errors.generic", { message: message.message });
+        finish();
+        return;
+      }
+      if (message.type === "done") {
+        try {
+          for (const [key, value] of Object.entries(message.settings || {})) {
+            if (typeof value === "string") localStorage.setItem(key, value);
+          }
+          progressBar.style.width = "100%";
+          progressPercent.textContent = "100%";
+          setText(progressLabel, "progress.verifying");
+          const { ready, reason } = await waitForGameReady();
+          setStorageStatus(ready ? "status.ready" : "status.missing", ready ? "ready" : "missing");
+          setPlayAvailability(ready);
+          if (ready) setRawText(progressLabel, "Portable OPFS restored. Ready to play.");
+          else setRawText(progressLabel, "Restore completed but verification failed: " + reason);
+        } catch (error) {
+          showError("errors.generic", { message: error.message });
+        } finally {
+          finish();
+        }
+      }
+    };
+    worker.postMessage({ file });
+  };
+
   setPlayAvailability(false);
 
   if (
@@ -513,6 +590,41 @@ async function initSetupFlow() {
   const pickFolder = () => folderInput.click();
   folderBtn.addEventListener("click", pickFolder);
   zipBtn.addEventListener("click", () => zipInput.click());
+  portableImportBtn.addEventListener("click", () => portableZipInput.click());
+  portableZipInput.addEventListener("change", () => {
+    const file = portableZipInput.files[0];
+    portableZipInput.value = "";
+    if (file) runPortableImport(file);
+  });
+  portableExportBtn.addEventListener("click", async () => {
+    if (importing) return;
+    errorBox.style.display = "none";
+    setImporting(true);
+    progress.style.display = "block";
+    const progressTitle = progress.querySelector(".setup-progress-title");
+    if (progressTitle) setRawText(progressTitle, "Exporting portable OPFS backup");
+    setRawText(progressLabel, "Preparing portable ZIP...");
+    progressPercent.textContent = "0%";
+    progressBar.style.width = "0%";
+    try {
+      await exportPortableOPFSBackup(({ done, total, file }) => {
+        const pct = total > 0 ? Math.floor(done / total * 100) : 0;
+        progressBar.style.width = pct + "%";
+        progressPercent.textContent = pct + "%";
+        setRawText(progressLabel, "Exporting " + file);
+      });
+      progressBar.style.width = "100%";
+      progressPercent.textContent = "100%";
+      setRawText(progressLabel, "Portable OPFS ZIP saved to your computer.");
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        progress.style.display = "none";
+        showError("errors.generic", { message: error.message });
+      }
+    } finally {
+      setImporting(false);
+    }
+  });
   folderBtn.hidden = !canPickFolders();
 
   bindGameDrop(dropZone, {

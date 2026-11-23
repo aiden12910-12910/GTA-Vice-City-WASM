@@ -2004,3 +2004,16 @@ input:focus-visible {
 body.gameIsStarted .lang-switcher {
   display: none;
 }
+
+
+/* Portable OPFS backup actions */
+.portable-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.portable-actions .game-pick-btn {
+  flex: 1 1 150px;
+  justify-content: center;
+}
