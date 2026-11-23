@@ -51,12 +51,28 @@ function saveBrowserSettings() {
     }
 }
 function setIniValue(ini, section, key, value) {
-    const sectionRegex = new RegExp('(^\\[' + section + '\\]\\r?\\n)([\\s\\S]*?)(?=^\\[|$)', 'm');
-    return ini.replace(sectionRegex, (whole, header, body) => {
-        const keyRegex = new RegExp('^' + key + '=.*$', 'm');
-        if (keyRegex.test(body)) return header + body.replace(keyRegex, key + '=' + value);
-        return header + body.replace(/\s*$/, '') + '\n' + key + '=' + value + '\n';
-    });
+    const lines = ini.split(/\r?\n/);
+    const sectionHeader = '[' + section + ']';
+    const sectionStart = lines.findIndex((line) => line.trim() === sectionHeader);
+    if (sectionStart < 0) return ini;
+
+    let sectionEnd = sectionStart + 1;
+    while (sectionEnd < lines.length && !/^\s*\[[^\]]+\]\s*$/.test(lines[sectionEnd])) {
+        sectionEnd++;
+    }
+
+    const keyLine = key + '=';
+    let keyIndex = -1;
+    for (let i = sectionStart + 1; i < sectionEnd; i++) {
+        if (lines[i].startsWith(keyLine)) {
+            keyIndex = i;
+            break;
+        }
+    }
+
+    if (keyIndex >= 0) lines[keyIndex] = keyLine + value;
+    else lines.splice(sectionEnd, 0, keyLine + value);
+    return lines.join('\n');
 }
 function buildConfiguredRevcIni(ini) {
     const [width, height] = browserSettings.resolution.split('x').map(Number);
