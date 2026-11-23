@@ -218,6 +218,20 @@ async function readDroppedFolder(root) {
   return out;
 }
 
+// Critical paths are checked again through direct handles after enumeration.
+// This works around directory iterators occasionally omitting a file on Windows.
+const REQUIRED_PICKED_FOLDER_FILES = [
+  "models/gta3.img",
+  "models/gta3.dir",
+  "anim/cuts.img",
+  "anim/cuts.dir",
+  "audio/sfx.raw",
+  "audio/sfx.sdt",
+  "data/handling.cfg",
+  "data/main.scm",
+  "text/american.gxt",
+];
+
 // [{ path, file }] for every file in a folder picked with showDirectoryPicker.
 async function readPickedFolder(root) {
   const out = [];
@@ -229,6 +243,36 @@ async function readPickedFolder(root) {
     }
   };
   await walk(root, root.name);
+
+  // Directory iteration is the fast path. Explicitly retrieve critical game
+  // files as a fallback so a missed entry cannot fail halfway through import.
+  const rootPrefix = `${root.name}/`;
+  const found = new Set(
+    out.map(({ path }) =>
+      path.startsWith(rootPrefix)
+        ? path.slice(rootPrefix.length).replace(/\\\\/g, "/").toLowerCase()
+        : path.replace(/\\\\/g, "/").toLowerCase(),
+    ),
+  );
+
+  for (const relativePath of REQUIRED_PICKED_FOLDER_FILES) {
+    if (found.has(relativePath.toLowerCase())) continue;
+
+    try {
+      const parts = relativePath.split("/");
+      let dir = root;
+      for (const part of parts.slice(0, -1)) {
+        dir = await dir.getDirectoryHandle(part);
+      }
+      const handle = await dir.getFileHandle(parts[parts.length - 1]);
+      out.push({ path: `${root.name}/${relativePath}`, file: await handle.getFile() });
+      found.add(relativePath.toLowerCase());
+      console.info("[folder] recovered required file omitted by directory iterator:", relativePath);
+    } catch (error) {
+      console.warn("[folder] direct lookup failed for required file:", relativePath, error);
+    }
+  }
+
   return out;
 }
 
