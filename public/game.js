@@ -55,7 +55,7 @@ function setIniValue(ini, section, key, value) {
     return ini.replace(sectionRegex, (whole, header, body) => {
         const keyRegex = new RegExp('^' + key + '=.*$', 'm');
         if (keyRegex.test(body)) return header + body.replace(keyRegex, key + '=' + value);
-        return header + body.replace(/\\s*$/, '') + '\\n' + key + '=' + value + '\\n';
+        return header + body.replace(/\s*$/, '') + '\n' + key + '=' + value + '\n';
     });
 }
 function buildConfiguredRevcIni(ini) {
