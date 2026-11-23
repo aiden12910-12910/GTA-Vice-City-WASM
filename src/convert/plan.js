@@ -24,6 +24,7 @@ const REQUIRED = [
   "anim/cuts.dir",
   "audio/sfx.raw",
   "audio/sfx.sdt",
+  "data/handling.cfg",
   "data/main.scm",
   "text/american.gxt",
 ];
