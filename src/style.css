@@ -948,6 +948,14 @@ select:focus {
   }
 }
 
+body.gameIsStarted .emscripten {
+  position: fixed;
+  top: 58px;
+  left: 0;
+  width: 100vw;
+  height: calc(100dvh - 58px);
+}
+
 .emscripten {
   position: absolute;
   inset: 0;
@@ -1012,11 +1020,11 @@ select:focus {
 }
 
 .loading-screen {
-  position: absolute;
-  top: 0;
+  position: fixed;
+  top: 58px;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100dvh - 58px);
   /* above the page (20) and the background grid (0), below the touch controls (100) */
   z-index: 50;
   background-color: black;
@@ -1070,10 +1078,10 @@ select:focus {
 
 .touch-controls-wrapper {
   position: fixed;
-  top: 0;
+  top: 58px;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: calc(100dvh - 58px);
   z-index: 100;
   opacity: 0.5;
   display: none;
@@ -1298,18 +1306,18 @@ select:focus {
 
 #move {
   position: fixed;
-  top: 0;
+  top: 58px;
   left: 0;
   width: 50%;
-  height: 100%;
+  height: calc(100dvh - 58px);
   z-index: 90;
 }
 #look {
   position: fixed;
-  top: 0;
+  top: 58px;
   right: 0;
   width: 50%;
-  height: 100%;
+  height: calc(100dvh - 58px);
   z-index: 90;
 }
 
@@ -1546,6 +1554,9 @@ body.gameIsStarted {
 
 .vc-topbar {
   position: relative;
+  height: 58px;
+  min-height: 58px;
+  box-sizing: border-box;
   z-index: 50;
   display: flex;
   align-items: center;
@@ -1641,10 +1652,11 @@ body.gameIsStarted {
   transform: translateY(1px);
 }
 body.gameIsStarted .vc-topbar {
-  display: none;
-}
-body.gameIsStarted #config-panel.vc-settings-panel {
-  display: none !important;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 3000;
 }
 
 .lang-switcher {
@@ -1966,8 +1978,8 @@ input:focus-visible {
 
 @media (max-width: 980px) {
   .vc-topbar {
-    flex-wrap: wrap;
-    min-height: 54px;
+    flex-wrap: nowrap;
+    min-height: 58px;
   }
   .vc-topbar-status {
     display: none;
