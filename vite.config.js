@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/gta-vice-city-wasm/",
+  // Cloudflare Pages serves this project from the site root.
+  base: "/",
   server: {
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",
