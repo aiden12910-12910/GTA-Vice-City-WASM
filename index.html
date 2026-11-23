@@ -32,6 +32,20 @@
     data-state-scope-mode="0"
     data-state-scope-gun="0"
   >
+    <header class="vc-topbar">
+      <div class="vc-topbar-brand">
+        <span class="vc-brand-mark">VC</span>
+        <span class="vc-brand-copy">
+          <strong>Grand Theft Auto: Vice City</strong>
+          <small>WEBASSEMBLY EDITION</small>
+        </span>
+      </div>
+      <div class="vc-topbar-status"><span class="vc-status-light"></span> LOCAL BROWSER RUNTIME</div>
+      <div class="vc-topbar-actions">
+        <button id="vc-settings-open" type="button" aria-controls="config-panel" aria-expanded="false">Settings</button>
+        <button id="vc-fullscreen-toggle" type="button">Fullscreen</button>
+      </div>
+    </header>
     <div class="rotate-overlay">
       <span class="rotate-overlay-icon">&#8635;</span>
       <span data-i18n="rotate">Rotate your device</span>
@@ -241,48 +255,7 @@
             <div id="controller-status" class="userdata-status" role="status" aria-live="polite" hidden></div>
           </details>
 
-          <div
-            id="config-panel"
-          >
-            <div>
-              <label
-                for="config-cheats"
-              >
-                <input
-                  type="checkbox"
-                  id="config-cheats"
-                />
-                <span id="config-cheats-label" data-i18n="config.cheats">Cheats (F3)</span>
-              </label>
-            </div>
-            <div>
-              <label
-                for="config-fullscreen"
-              >
-                <input
-                  type="checkbox"
-                  id="config-fullscreen"
-                  checked
-                />
-                <span id="config-fullscreen-label" data-i18n="config.fullscreen">Fullscreen</span>
-              </label>
-            </div>
-            <div>
-              <label
-                for="config-max-fps"
-              >
-                <span id="config-max-fps-label" data-i18n="config.maxFps">Max FPS:</span>
-                <input
-                  type="number"
-                  id="config-max-fps"
-                  min="0"
-                  max="240"
-                  value="0"
-                />
-                <span id="config-max-fps-unlimited" data-i18n="config.unlimited">(0 = unlimited)</span>
-              </label>
-            </div>
-          </div>
+
         </div>
 
         <div
@@ -359,6 +332,63 @@
         </div>
       </div>
     </div>
+    <section id="config-panel" class="vc-settings-panel" role="dialog" aria-modal="false" aria-labelledby="vc-settings-title">
+      <div class="vc-settings-heading">
+        <div>
+          <span class="vc-settings-kicker">VIDEO & PERFORMANCE</span>
+          <h2 id="vc-settings-title">Game Settings</h2>
+        </div>
+        <button id="vc-settings-close" type="button" aria-label="Close settings">×</button>
+      </div>
+
+      <label class="vc-setting-row" for="config-quality">
+        <span>Graphics quality</span>
+        <select id="config-quality">
+          <option value="performance">Performance</option>
+          <option value="balanced">Balanced</option>
+          <option value="high">High</option>
+          <option value="custom" selected>Custom</option>
+        </select>
+      </label>
+
+      <label class="vc-setting-row" for="config-resolution">
+        <span>Resolution</span>
+        <select id="config-resolution">
+          <option value="640x480">640 × 480</option>
+          <option value="800x600" selected>800 × 600</option>
+          <option value="1024x768">1024 × 768</option>
+          <option value="1280x720">1280 × 720</option>
+          <option value="1600x900">1600 × 900</option>
+        </select>
+      </label>
+
+      <label class="vc-setting-row" for="config-max-fps">
+        <span>FPS limit</span>
+        <select id="config-max-fps">
+          <option value="0">Unlimited</option>
+          <option value="30">30 FPS</option>
+          <option value="40">40 FPS</option>
+          <option value="50">50 FPS</option>
+          <option value="60">60 FPS</option>
+          <option value="75">75 FPS</option>
+          <option value="90">90 FPS</option>
+          <option value="120">120 FPS</option>
+        </select>
+      </label>
+
+      <label class="vc-setting-row" for="config-draw-distance">
+        <span>Draw distance <output id="config-draw-distance-value">1.8×</output></span>
+        <input id="config-draw-distance" type="range" min="0.8" max="1.8" step="0.1" value="1.8" />
+      </label>
+
+      <div class="vc-settings-toggles">
+        <label for="config-trails"><input id="config-trails" type="checkbox" checked /> Motion trails</label>
+        <label for="config-vsync"><input id="config-vsync" type="checkbox" checked /> VSync</label>
+        <label for="config-fullscreen"><input id="config-fullscreen" type="checkbox" checked /> Launch in fullscreen</label>
+      </div>
+
+      <p class="vc-settings-note">Settings are saved in this browser and applied the next time the game starts. Lower resolution and draw distance can reduce graphics workload. FPS limiting may reduce load when the game would otherwise run faster.</p>
+    </section>
     <canvas class="emscripten" id="canvas"></canvas>
 
     <div class="touch-controls-wrapper">
