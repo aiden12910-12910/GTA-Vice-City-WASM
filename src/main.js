@@ -250,8 +250,8 @@ async function readPickedFolder(root) {
   const found = new Set(
     out.map(({ path }) =>
       path.startsWith(rootPrefix)
-        ? path.slice(rootPrefix.length).replace(/\\\\/g, "/").toLowerCase()
-        : path.replace(/\\\\/g, "/").toLowerCase(),
+        ? path.slice(rootPrefix.length).toLowerCase()
+        : path.toLowerCase(),
     ),
   );
 
