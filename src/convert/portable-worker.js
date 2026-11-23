@@ -8,18 +8,49 @@ import {
 import { removeEntry, syncAccess } from "./opfs.js";
 import { zipSource, ZipError } from "./sources.js";
 
-const CHUNK_SIZE = 4 * 1024 * 1024;
-const crcTable = (() => {
-  const table = new Uint32Array(256);
+const CHUNK_SIZE = 16 * 1024 * 1024;
+// Slicing-by-8 CRC32: validate large audio/data files with fewer JS loop iterations.
+const crcTables = (() => {
+  const tables = Array.from({ length: 8 }, () => new Uint32Array(256));
   for (let n = 0; n < 256; n++) {
     let c = n;
     for (let k = 0; k < 8; k++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
-    table[n] = c >>> 0;
+    tables[0][n] = c >>> 0;
   }
-  return table;
+  for (let table = 1; table < 8; table++) {
+    for (let n = 0; n < 256; n++) {
+      const c = tables[table - 1][n];
+      tables[table][n] = (tables[0][c & 255] ^ (c >>> 8)) >>> 0;
+    }
+  }
+  return tables;
 })();
 function updateCrc(crc, bytes) {
-  for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+  const t = crcTables;
+  let i = 0;
+  const limit = bytes.length - 7;
+  while (i < limit) {
+    crc = (crc ^ (
+      bytes[i] |
+      (bytes[i + 1] << 8) |
+      (bytes[i + 2] << 16) |
+      (bytes[i + 3] << 24)
+    )) >>> 0;
+    crc = (
+      t[7][crc & 255] ^
+      t[6][(crc >>> 8) & 255] ^
+      t[5][(crc >>> 16) & 255] ^
+      t[4][crc >>> 24] ^
+      t[3][bytes[i + 4]] ^
+      t[2][bytes[i + 5]] ^
+      t[1][bytes[i + 6]] ^
+      t[0][bytes[i + 7]]
+    ) >>> 0;
+    i += 8;
+  }
+  while (i < bytes.length) {
+    crc = t[0][(crc ^ bytes[i++]) & 255] ^ (crc >>> 8);
+  }
   return crc >>> 0;
 }
 function safePath(path) {
