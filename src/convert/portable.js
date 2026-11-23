@@ -60,7 +60,7 @@ function centralHeader(entry) {
   return concat([
     u32(0x02014b50), u16(20), u16(20), u16(0x0808), u16(0), u16(0), u16(0),
     u32(entry.crc), u32(entry.size), u32(entry.size), u16(entry.name.length),
-    u16(0), u16(0), u16(0), u32(0), u32(entry.offset), entry.name,
+    u16(0), u16(0), u16(0), u16(0), u32(0), u32(entry.offset), entry.name,
   ]);
 }
 
