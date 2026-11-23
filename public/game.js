@@ -20,7 +20,7 @@ const SETTINGS_DEFAULTS = {
     drawDistance: 1.8,
     trails: true,
     vsync: true,
-    fullscreen: true,
+    fullscreen: false,
 };
 function loadBrowserSettings() {
     try {
@@ -85,7 +85,7 @@ function buildConfiguredRevcIni(ini) {
 }
 
 // Explicit URL parameters take precedence over the saved browser preferences.
-let autoFullScreen = params.has('fullscreen') ? params.get('fullscreen') !== '0' : browserSettings.fullscreen;
+let autoFullScreen = params.has('fullscreen') ? params.get('fullscreen') !== '0' : false;
 const CHEATS_KEY = 'vcsky.cheats';
 let cheatsEnabled = params.get('cheats') === '1' || (() => {
     try { return localStorage.getItem(CHEATS_KEY) === '1'; } catch { return false; }
@@ -172,12 +172,39 @@ async function loadData() {
     return buffer;
 }
 
+// Apply the selected FPS cap to the game's requestAnimationFrame loop.
+function installFPSLimiter() {
+    if (window.__vcFPSLimiterInstalled) return;
+    const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
+    const lastFrameByCallback = new WeakMap();
+    window.requestAnimationFrame = function (callback) {
+        const schedule = () => nativeRequestAnimationFrame((timestamp) => {
+            const limit = maxFPS;
+            if (!limit) {
+                lastFrameByCallback.set(callback, timestamp);
+                callback(timestamp);
+                return;
+            }
+            const interval = 1000 / limit;
+            const last = lastFrameByCallback.get(callback) || 0;
+            if (!last || timestamp - last >= interval) {
+                lastFrameByCallback.set(callback, timestamp);
+                callback(timestamp);
+            } else {
+                schedule();
+            }
+        });
+        return schedule();
+    };
+    window.__vcFPSLimiterInstalled = true;
+}
+
 async function startGame(e) {
     e.stopPropagation();
     await window.vcController?.connect();
     await resumeAudioContexts();
 
-    if ((isTouch || autoFullScreen) && document.documentElement.requestFullscreen) {
+    if (autoFullScreen && document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen().catch(() => {});
     }
 
@@ -191,6 +218,7 @@ async function startGame(e) {
     loadingScreen.hidden = false;
 
     window.__vcGameRuntimeReady = false;
+    installFPSLimiter();
     await window.vcUserData?.prepareLaunch();
     const dataBuffer = await loadData();
     loadGame(dataBuffer);
