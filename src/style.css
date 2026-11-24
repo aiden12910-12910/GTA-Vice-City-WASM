@@ -2029,3 +2029,86 @@ body.gameIsStarted .lang-switcher {
   flex: 1 1 150px;
   justify-content: center;
 }
+
+
+/* Compact, persistent GTA3-inspired runtime toolbar */
+body { padding-top: 44px !important; box-sizing: border-box; }
+.vc-topbar {
+  position: fixed !important;
+  inset: 0 0 auto 0;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 8px !important;
+  gap: 12px !important;
+  flex-wrap: nowrap !important;
+  overflow: visible;
+  background: #14171c !important;
+  border-bottom: 1px solid #262b33 !important;
+  box-shadow: none !important;
+  z-index: 10000 !important;
+}
+.vc-topbar-brand { flex: 0 0 auto; gap: 8px; white-space: nowrap; }
+.vc-topbar-brand strong { color: #e8edf5; font-size: 12px; font-weight: 650; }
+.vc-status-light { flex: 0 0 8px; width: 8px; height: 8px; }
+.vc-topbar-status, .vc-topbar-fps {
+  display: block !important;
+  flex: 0 1 auto;
+  min-width: 0;
+  margin: 0 !important;
+  color: #9aa4b2;
+  font: 12px/1.2 Consolas, monospace;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vc-topbar-fps { flex: 0 0 auto; }
+.vc-topbar-actions { flex: 0 0 auto; gap: 6px !important; margin: 0 !important; }
+.vc-topbar-main-actions { min-width: 0; }
+.vc-topbar-fullscreen { margin-left: auto !important; }
+.vc-topbar-actions button, .vc-slot-picker {
+  min-height: 26px !important;
+  height: 26px;
+  padding: 0 9px !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  background: #1c2027 !important;
+  color: #d7dbe0 !important;
+  font: 12px/1 Arial, sans-serif !important;
+  white-space: nowrap;
+}
+.vc-topbar-actions button:hover:not(:disabled) { border-color: #354557 !important; background: #242d39 !important; }
+.vc-topbar-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.vc-slot-picker { display: inline-flex; align-items: center; gap: 4px; padding: 0 4px !important; }
+.vc-slot-picker select {
+  max-width: 58px; border: 0; outline: 0; background: transparent; color: #e8edf5; font: inherit;
+}
+.vc-slot-picker option { background: #14171c; color: #e8edf5; }
+body.gameIsStarted .vc-topbar { position: fixed !important; }
+body.gameIsStarted .emscripten { top: 44px !important; height: calc(100dvh - 44px) !important; }
+body.gameIsStarted .loading-screen { top: 44px !important; height: calc(100dvh - 44px) !important; }
+#config-panel.vc-settings-panel { box-sizing: border-box; min-width: 0; }
+.vc-setting-row { min-width: 0; box-sizing: border-box; }
+.vc-setting-row input[type="range"] { display: block; width: calc(100% - 8px) !important; max-width: calc(100% - 8px); min-width: 0; margin: 0 4px; box-sizing: border-box; }
+.progress-bar-container { box-sizing: border-box !important; overflow: hidden !important; }
+.progress-bar-fill { max-width: 100%; min-width: 0; box-sizing: border-box !important; }
+.loader-container { justify-content: center !important; gap: 16px; }
+.loader-container::before {
+  content: ""; display: block; width: 42px; height: 42px; border-radius: 50%;
+  border: 3px solid rgba(112,182,255,.18); border-top-color: #70b6ff;
+  animation: vc-loader-spin .8s linear infinite;
+}
+@keyframes vc-loader-spin { to { transform: rotate(360deg); } }
+@media (max-width: 980px) {
+  .vc-topbar { gap: 8px !important; padding: 0 6px !important; }
+  .vc-topbar-status { max-width: 190px; }
+  .vc-topbar-actions { gap: 3px !important; }
+  .vc-topbar-actions button, .vc-slot-picker { padding: 0 6px !important; font-size: 11px !important; }
+}
+@media (max-width: 700px) {
+  .vc-topbar { overflow-x: auto; overflow-y: hidden; }
+  .vc-topbar-brand { flex: 0 0 auto; }
+  .vc-topbar-status { max-width: 130px; }
+  .vc-topbar-main-actions { flex: 0 0 auto; }
+  .vc-topbar-fullscreen { position: sticky; right: 0; background: #14171c; }
+}
