@@ -1,19 +1,19 @@
-# GTA: Vice City — WASM Port
+# GTA Vice City in your Browser
 
-Play GTA: Vice City right in your browser. Nothing to install: the game runs on your own device and keeps working offline.
+Play GTA Vice City in your browser using game files you are authorized to use. The project runs locally in your browser and is still experimental.
 
 [![Open in your browser](https://img.shields.io/badge/-open%20in%20your%20browser-0098d4?style=for-the-badge)](https://joncodeofficial.github.io/gta-vice-city-wasm/)
 
 ![GTA: Vice City running in the browser, with a custom Spider-Man skin](public/demo.webp)
 
-You need GTA: Vice City for PC installed on your computer — see [How it works](#how-it-works). Game files are not provided here.
+Only use files you have permission to use. This project does not provide or distribute GTA VC game assets and is still experimental. If you do not have GTA VC game files, ask the developer about an authorized USB copy.
 
 ## What's included
 
 - **Play in your browser.** Nothing to install, and your game files stay on your device.
 - **Your own saved games.** Import, export and remove PC saves.
 - **Custom skins.** Change how Tommy looks with your own images.
-- **Cheats on demand.** Off by default; switch them on from the setup screen.
+- **Experimental cheats.** Cheat controls are marked TEST and may not work yet.
 - **Touch controls.** On-screen controls for phones and tablets.
 - **Controller support.** Pair a controller and press any button to play.
 - **Install it as an app.** Add it to your desktop or home screen from the browser.
@@ -96,8 +96,6 @@ This repository's source code is licensed under the [MIT License](LICENSE).
 
 ## Disclaimer
 
-This is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by, or sponsored by Rockstar Games or Take-Two Interactive. "Grand Theft Auto" and "Vice City" are trademarks of their respective owners and are used here only to describe which game this software is compatible with.
+Only use files you have permission to use. This project does not provide or distribute GTA VC game assets and is still experimental. If you do not have GTA VC game files, ask the developer about an authorized USB copy.
 
-The source code in this repository does not include the game's data files (models, textures, audio, maps). It is built on an open-source reimplementation of the game engine, and you need your own legitimate copy of GTA: Vice City to use it. The maintainer does not authorize anyone to redistribute the game's files and is not responsible for how third parties obtain, host, or share them, nor for any consequences of unauthorized use of this project.
-
-This software is provided "as is", without warranty of any kind. See the [LICENSE](LICENSE) file for the full liability disclaimer.
+This is an unofficial, non-commercial fan project. It is not affiliated with, endorsed by, or sponsored by Rockstar Games or Take-Two Interactive. All trademarks and copyrights belong to their respective owners. The source code is provided as-is under the MIT License; see [LICENSE](LICENSE) for details.
