@@ -190,6 +190,20 @@
             setStatus(t("userdata.storageError", { message: err && err.message ? err.message : err }), "error");
         };
         refreshSlots().catch(showStorageError);
+
+        // Toolbar actions mirror the in-game save controls.
+        const selectedSlot = () => Number(document.getElementById("vc-save-slot")?.value || 1);
+        document.getElementById("vc-download-slot")?.addEventListener("click", run(async () => {
+            await refreshSlots();
+            await exportSlot(selectedSlot());
+        }));
+        document.getElementById("vc-download-saves")?.addEventListener("click", run(async () => {
+            await refreshSlots();
+            const filled = slots.filter(({ entry }) => entry?.contents);
+            if (!filled.length) throw new Error("There are no saved games to download yet.");
+            for (const { slot } of filled) await exportSlot(slot);
+        }));
+        document.getElementById("vc-upload-save")?.addEventListener("click", () => pickSaveFor(selectedSlot()));
         window.addEventListener("vc:languagechange", () => refreshSlots().catch(showStorageError));
     }
 
