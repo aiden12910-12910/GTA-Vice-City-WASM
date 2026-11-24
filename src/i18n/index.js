@@ -32,6 +32,7 @@ function toSupported(code) {
 }
 
 i18next.use(LanguageDetector).init({
+  lng: "en",
   resources: {
     en: { translation: en },
     es: { translation: es },
@@ -49,13 +50,7 @@ i18next.use(LanguageDetector).init({
   // Strings are written with textContent; only the *-html keys use innerHTML,
   // and those never interpolate user input.
   interpolation: { escapeValue: false },
-  detection: {
-    // No querystring: game.js forwards location.search to the engine.
-    order: ["localStorage", "navigator"],
-    lookupLocalStorage: "vc-lang",
-    caches: ["localStorage"],
-    convertDetectedLanguage: toSupported,
-  },
+  detection: { order: [] },
 });
 
 export const t = (key, options) => i18next.t(key, options);
@@ -97,7 +92,7 @@ export function applyTranslations(root = document) {
     el.setAttribute("aria-label", t(el.dataset.i18nAriaLabel));
   });
   document.documentElement.lang = currentLanguage();
-  document.title = t("meta.title");
+  document.title = "GTA Vice City in your Browser";
 }
 
 export function changeLanguage(code) {
