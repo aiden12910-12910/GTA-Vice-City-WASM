@@ -216,8 +216,14 @@ async function startGame(e) {
     document.querySelector('.click-to-play').style.display = 'none';
     document.querySelector('.loader-container').style.display = "flex";
     loadingScreen.hidden = false;
+    const instanceStatus = document.getElementById('vc-instance-status');
+    const instanceLight = document.getElementById('vc-instance-light');
+    if (instanceStatus) instanceStatus.textContent = 'Starting game instance…';
+    if (instanceLight) instanceLight.style.background = '#e8b339';
 
     window.__vcGameRuntimeReady = false;
+    const fpsStatus = document.getElementById('vc-fps-status');
+    if (fpsStatus) fpsStatus.textContent = 'FPS: loading';
     installFPSLimiter();
     await window.vcUserData?.prepareLaunch();
     const dataBuffer = await loadData();
@@ -236,8 +242,8 @@ function setStatus(text) {
     const match = text.match(/(.+)\((\d+\.?\d*)\/(\d+)\)/);
     if (match) {
         const [current, total] = match.slice(2, 4).map(Number);
-        const percent = (current / total * 100).toFixed(0);
-        statusElement.textContent = t("loader.downloadingPercent", { percent });
+        const percent = Math.min(100, Math.max(0, total > 0 ? current / total * 100 : 0));
+        statusElement.textContent = t("loader.downloadingPercent", { percent: Math.round(percent) });
         progressElement.value = current;
         progressElement.max = total;
         progressElement.hidden = false;
@@ -260,6 +266,10 @@ async function loadGame(data) {
     var Module = {
         onRuntimeInitialized: () => {
             window.__vcGameRuntimeReady = true;
+            const instanceStatus = document.getElementById('vc-instance-status');
+            const instanceLight = document.getElementById('vc-instance-light');
+            if (instanceStatus) instanceStatus.textContent = 'Game instance running';
+            if (instanceLight) instanceLight.style.background = '#3ecf6e';
             requestAnimationFrame(() => requestAnimationFrame(() => {
                 const loadingScreen = document.querySelector('.loading-screen');
                 if (loadingScreen) loadingScreen.hidden = true;
