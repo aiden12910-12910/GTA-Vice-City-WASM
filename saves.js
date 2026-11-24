@@ -193,11 +193,20 @@
 
         // Toolbar actions mirror the in-game save controls.
         const selectedSlot = () => Number(document.getElementById("vc-save-slot")?.value || 1);
-        document.getElementById("vc-download-slot")?.addEventListener("click", run(async () => {
+        // Export is read-only, so keep it available while the game is running.
+        // The shared run() guard intentionally locks mutations after launch.
+        const runExport = async (action) => {
+            try {
+                await action();
+            } catch (err) {
+                showStorageError(err);
+            }
+        };
+        document.getElementById("vc-download-slot")?.addEventListener("click", () => runExport(async () => {
             await refreshSlots();
             await exportSlot(selectedSlot());
         }));
-        document.getElementById("vc-download-saves")?.addEventListener("click", run(async () => {
+        document.getElementById("vc-download-saves")?.addEventListener("click", () => runExport(async () => {
             await refreshSlots();
             const filled = slots.filter(({ entry }) => entry?.contents);
             if (!filled.length) throw new Error("There are no saved games to download yet.");
