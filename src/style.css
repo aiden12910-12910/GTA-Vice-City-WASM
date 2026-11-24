@@ -2112,3 +2112,8 @@ body.gameIsStarted .loading-screen { top: 44px !important; height: calc(100dvh -
   .vc-topbar-main-actions { flex: 0 0 auto; }
   .vc-topbar-fullscreen { position: sticky; right: 0; background: #14171c; }
 }
+
+.lang-switcher { display: none !important; }
+.vc-topbar-debug { flex: 0 0 auto; margin-left: auto; color: #9aa4b2; font: 11px Arial, sans-serif; white-space: nowrap; }
+.vc-topbar-fullscreen { margin-left: 0 !important; }
+.vc-setting-row input[type="range"] { width: calc(100% - 28px) !important; max-width: calc(100% - 28px); margin: 0 14px; }
