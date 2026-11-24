@@ -102,13 +102,19 @@ export async function zipSource(file, tmpDir, onUnpack) {
   const entries = await readCentralDirectory(file);
   const unpacked = new Map();
 
+  const dataStarts = new Map();
   const dataStart = async (path) => {
-    const e = entries.get(path);
-    if (e.flags & 1) throw new ZipError(`${path} is encrypted`);
-    if (e.method !== 0 && e.method !== 8) throw new ZipError(`${path} uses an unsupported compression method`);
-    const local = await view(file, e.localOffset, e.localOffset + 30);
-    if (u32(local, 0) !== 0x04034b50) throw new ZipError("damaged zip file");
-    return e.localOffset + 30 + u16(local, 26) + u16(local, 28);
+    if (!dataStarts.has(path)) {
+      dataStarts.set(path, (async () => {
+        const e = entries.get(path);
+        if (e.flags & 1) throw new ZipError(`${path} is encrypted`);
+        if (e.method !== 0 && e.method !== 8) throw new ZipError(`${path} uses an unsupported compression method`);
+        const local = await view(file, e.localOffset, e.localOffset + 30);
+        if (u32(local, 0) !== 0x04034b50) throw new ZipError("damaged zip file");
+        return e.localOffset + 30 + u16(local, 26) + u16(local, 28);
+      })());
+    }
+    return dataStarts.get(path);
   };
 
   const rawStream = async (path) => {
