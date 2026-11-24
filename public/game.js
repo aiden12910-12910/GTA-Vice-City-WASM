@@ -175,6 +175,8 @@ async function loadData() {
 // Apply the selected FPS cap to the game's requestAnimationFrame loop.
 function installFPSLimiter() {
     if (window.__vcFPSLimiterInstalled) return;
+    let fpsFrames = 0;
+    let fpsWindowStart = performance.now();
     const nativeRequestAnimationFrame = window.requestAnimationFrame.bind(window);
     const lastFrameByCallback = new WeakMap();
     window.requestAnimationFrame = function (callback) {
@@ -182,6 +184,13 @@ function installFPSLimiter() {
             const limit = maxFPS;
             if (!limit) {
                 lastFrameByCallback.set(callback, timestamp);
+                fpsFrames++;
+                if (timestamp - fpsWindowStart >= 1000) {
+                    const fpsStatus = document.getElementById('vc-fps-status');
+                    if (fpsStatus) fpsStatus.textContent = 'FPS: ' + Math.round(fpsFrames * 1000 / (timestamp - fpsWindowStart));
+                    fpsFrames = 0;
+                    fpsWindowStart = timestamp;
+                }
                 callback(timestamp);
                 return;
             }
@@ -189,6 +198,13 @@ function installFPSLimiter() {
             const last = lastFrameByCallback.get(callback) || 0;
             if (!last || timestamp - last >= interval) {
                 lastFrameByCallback.set(callback, timestamp);
+                fpsFrames++;
+                if (timestamp - fpsWindowStart >= 1000) {
+                    const fpsStatus = document.getElementById('vc-fps-status');
+                    if (fpsStatus) fpsStatus.textContent = 'FPS: ' + Math.round(fpsFrames * 1000 / (timestamp - fpsWindowStart));
+                    fpsFrames = 0;
+                    fpsWindowStart = timestamp;
+                }
                 callback(timestamp);
             } else {
                 schedule();
@@ -270,6 +286,8 @@ async function loadGame(data) {
             const instanceLight = document.getElementById('vc-instance-light');
             if (instanceStatus) instanceStatus.textContent = 'Game instance running';
             if (instanceLight) instanceLight.style.background = '#3ecf6e';
+            const fpsStatus = document.getElementById('vc-fps-status');
+            if (fpsStatus) fpsStatus.textContent = 'FPS: —';
             requestAnimationFrame(() => requestAnimationFrame(() => {
                 const loadingScreen = document.querySelector('.loading-screen');
                 if (loadingScreen) loadingScreen.hidden = true;
