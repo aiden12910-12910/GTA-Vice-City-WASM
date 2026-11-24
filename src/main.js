@@ -306,6 +306,10 @@ async function initSetupFlow() {
 
   const setPlayAvailability = (enabled) => {
     window.__gtaGameReady = enabled;
+    const instanceStatus = document.getElementById("vc-instance-status");
+    const instanceLight = document.getElementById("vc-instance-light");
+    if (instanceStatus) instanceStatus.textContent = enabled ? "Assets ready — click Start to launch." : "Ready — provide assets and/or click Start.";
+    if (instanceLight) instanceLight.style.background = enabled ? "#3ecf6e" : "#e8b339";
     clickToPlayButton.disabled = !enabled;
     clickToPlayButton.classList.toggle("disabled", !enabled);
   };
