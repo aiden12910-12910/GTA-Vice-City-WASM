@@ -8,7 +8,7 @@ import {
 import { removeEntry, syncAccess } from "./opfs.js";
 import { zipSource, ZipError } from "./sources.js";
 
-const CHUNK_SIZE = 16 * 1024 * 1024;
+const CHUNK_SIZE = 32 * 1024 * 1024; // Fewer reads/writes for large audio and package files.
 // Slicing-by-8 CRC32: validate large audio/data files with fewer JS loop iterations.
 const crcTables = (() => {
   const tables = Array.from({ length: 8 }, () => new Uint32Array(256));
@@ -142,11 +142,8 @@ async function restoreSkins(manifest, source) {
     db.close();
   }
 }
-async function writeOPFSFile(root, path, source, zipPath, expectedSize, expectedCrc, report) {
-  const parts = path.split("/");
-  let directory = root;
-  for (const part of parts.slice(0, -1)) directory = await directory.getDirectoryHandle(part, { create: true });
-  const handle = await directory.getFileHandle(parts[parts.length - 1], { create: true });
+async function writeOPFSFile(directory, fileName, path, source, zipPath, expectedSize, expectedCrc, report) {
+  const handle = await directory.getFileHandle(fileName, { create: true });
   const access = await syncAccess(handle);
   let offset = 0;
   let crc = 0xffffffff;
@@ -218,10 +215,28 @@ async function run(file) {
 
   for (const name of GAME_ENTRIES) await removeEntry(root, name);
   let completed = 0;
+  // Reuse directory handles: audio packages often contain many files in the same folders.
+  const directoryCache = new Map([["", root]]);
+  const getParentDirectory = async (path) => {
+    const parts = path.split("/");
+    let currentPath = "";
+    let directory = root;
+    for (const part of parts.slice(0, -1)) {
+      currentPath = currentPath ? currentPath + "/" + part : part;
+      let cached = directoryCache.get(currentPath);
+      if (!cached) {
+        cached = directory.getDirectoryHandle(part, { create: true });
+        directoryCache.set(currentPath, cached);
+      }
+      directory = await cached;
+    }
+    return { directory, fileName: parts[parts.length - 1] };
+  };
   for (const item of files) {
     const zipPath = "opfs/" + item.path;
     const fileBase = completed;
-    await writeOPFSFile(root, item.path, source, zipPath, item.size, source.crc(zipPath), (fileDone) => {
+    const target = await getParentDirectory(item.path);
+    await writeOPFSFile(target.directory, target.fileName, item.path, source, zipPath, item.size, source.crc(zipPath), (fileDone) => {
       self.postMessage({ type: "progress", done: fileBase + fileDone, total, file: item.path });
     });
     completed += item.size;
