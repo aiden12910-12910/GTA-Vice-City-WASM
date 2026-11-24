@@ -6,7 +6,7 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"
     />
-    <title>GTA: Vice City — WASM Port</title>
+    <title>GTA Vice City in your Browser</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
@@ -33,17 +33,21 @@
     data-state-scope-mode="0"
     data-state-scope-gun="0"
   >
-    <header class="vc-topbar">
+    <header class="vc-topbar" id="vc-topbar">
       <div class="vc-topbar-brand">
-        <span class="vc-brand-mark">VC</span>
-        <span class="vc-brand-copy">
-          <strong>Grand Theft Auto: Vice City</strong>
-          <small>WEBASSEMBLY EDITION</small>
-        </span>
+        <span class="vc-status-light" id="vc-instance-light"></span>
+        <strong>GTA Vice City in your Browser</strong>
       </div>
-      <div class="vc-topbar-status"><span class="vc-status-light"></span> LOCAL BROWSER RUNTIME</div>
-      <div class="vc-topbar-actions">
+      <div class="vc-topbar-status" id="vc-instance-status" role="status" aria-live="polite">Ready — provide assets and/or click Start.</div>
+      <div class="vc-topbar-fps" id="vc-fps-status">FPS: —</div>
+      <div class="vc-topbar-actions vc-topbar-main-actions">
         <button id="vc-settings-open" type="button" aria-controls="config-panel" aria-expanded="false">Settings</button>
+        <button id="vc-download-saves" type="button">Download saves</button>
+        <label class="vc-slot-picker">Slot <select id="vc-save-slot" aria-label="Save slot"><option value="1">Slot 1</option><option value="2">Slot 2</option><option value="3">Slot 3</option><option value="4">Slot 4</option><option value="5">Slot 5</option><option value="6">Slot 6</option><option value="7">Slot 7</option><option value="8">Slot 8</option></select></label>
+        <button id="vc-download-slot" type="button">Download slot</button>
+        <button id="vc-upload-save" type="button">Upload save</button>
+      </div>
+      <div class="vc-topbar-actions vc-topbar-fullscreen">
         <button id="vc-fullscreen-toggle" type="button">Fullscreen</button>
       </div>
     </header>
@@ -269,11 +273,9 @@
           <div
             class="disclaimer"
           >
-            <span id="disclaimer-text" data-i18n="disclaimer.label">DISCLAIMER:</span>
+            <span id="disclaimer-text">NOTICE:</span>
             <span class="eula">
-              <span id="disclaimer-sources" data-i18n="disclaimer.text">
-                Unofficial fan project, not affiliated with, endorsed by or sponsored by Rockstar Games or Take-Two Interactive. It does not include the game's data files, and you need your own legitimate copy of Grand Theft Auto: Vice City to play. All trademarks and copyrights belong to their respective owners.
-              </span>
+              <span id="disclaimer-sources">Only use files you have permission to use. This project does not provide or distribute GTA VC game assets and is still experimental. If you do not have GTA VC game files, ask the developer about an authorized USB copy.</span>
             </span>
           </div>
 
