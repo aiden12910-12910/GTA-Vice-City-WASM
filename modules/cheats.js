@@ -201,26 +201,10 @@
             text-transform: uppercase;
         }
         .cheat-btn {
-            position: relative;
-            padding-right: 48px !important;
             background: transparent !important;
             border: 1px solid #444 !important;
             text-align: left;
             padding: ${isTouch ? '12px 10px' : '6px 10px'};
-        }
-        .cheat-btn::after {
-            content: "TEST";
-            position: absolute;
-            top: 50%;
-            right: 7px;
-            transform: translateY(-50%);
-            padding: 2px 4px;
-            border: 1px solid rgba(232,179,57,.45);
-            border-radius: 3px;
-            color: #e8b339;
-            font-size: 8px;
-            font-weight: 800;
-            letter-spacing: .04em;
         }
         .cheat-btn:hover, .cheat-btn:active {
             border-color: #0ff !important;
