@@ -410,7 +410,9 @@ async function initSetupFlow() {
 
       if (message.type === "progress") {
         if (message.phase === "converting") {
-          const pct = Math.floor((message.done / message.total) * 100);
+          const pct = message.total > 0
+            ? Math.min(100, Math.max(0, Math.floor((message.done / message.total) * 100)))
+            : 0;
           progressBar.style.width = `${pct}%`;
           progressPercent.textContent = `${pct}%`;
           setText(progressLabel, "progress.converting", { done: message.done, total: message.total });
